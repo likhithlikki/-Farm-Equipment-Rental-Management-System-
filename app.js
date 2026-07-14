@@ -452,4 +452,26 @@ document.addEventListener("keydown", (e)=>{
   if (e.key === "Escape") document.querySelectorAll(".modal-overlay.open").forEach(m=>m.classList.remove("open"));
 });
 
+
+
+async function handleFormSubmit(evt){
+  evt.preventDefault();
+  ...
+  const btn = document.getElementById("formSubmitBtn");
+  btn.disabled = true; btn.textContent = "Saving...";
+  try{
+    const res = id ? await apiCall("update", { id, ...payload }) : await apiCall("create", payload);
+    if (!res.ok){ toast(res.error || "Save failed", "error"); return; }
+    await refreshEquipment();
+    closeModal("formOverlay");
+    toast(id ? "Equipment updated" : "Equipment added");
+  } catch (err) {
+    toast("Network error — please check your connection and try again", "error");
+  } finally {
+    btn.disabled = false; btn.textContent = "Save Equipment";
+  }
+}
+
+
+
 boot();
