@@ -3,349 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FieldStock — Farm Equipment Rental Yard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#EEF0E2;
-    --bg-soft:#E4E7D6;
-    --surface:#FFFFFF;
-    --ink:#20281B;
-    --ink-soft:#54604A;
-    --line:#D6D9C4;
-    --line-strong:#B9BEA3;
-    --orange:#E2622B;
-    --orange-dark:#C24F1E;
-    --green:#4C6B3D;
-    --amber:#C98A1F;
-    --available:#3F7D45;
-    --available-bg:#E7F1E4;
-    --rented:#B23A2E;
-    --rented-bg:#F7E7E3;
-    --radius:14px;
-    --radius-sm:8px;
-    --font-display:'Fraunces', serif;
-    --font-body:'Inter', sans-serif;
-    --font-mono:'IBM Plex Mono', monospace;
-    --shadow: 0 1px 2px rgba(32,40,27,0.06), 0 6px 18px rgba(32,40,27,0.07);
-  }
-  *{box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:var(--font-body);
-    -webkit-font-smoothing:antialiased;
-  }
-  img{max-width:100%;display:block;}
-  button{font-family:inherit;cursor:pointer;}
-  input,select,textarea{font-family:inherit;}
-  ::selection{background:var(--orange);color:#fff;}
-  :focus-visible{outline:2px solid var(--orange);outline-offset:2px;}
-
-  /* ---------- Header ---------- */
-  .topbar{
-    background:var(--ink);
-    color:#F2F0E4;
-    padding:18px 28px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
-    position:sticky;top:0;z-index:40;
-    border-bottom:3px solid var(--orange);
-  }
-  .brand{display:flex;align-items:center;gap:12px;}
-  .brand-mark{
-    width:40px;height:40px;border-radius:10px;
-    background:var(--orange);
-    display:flex;align-items:center;justify-content:center;
-    font-size:20px;flex-shrink:0;
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25);
-  }
-  .brand h1{
-    font-family:var(--font-display);
-    font-size:22px;
-    font-weight:700;
-    margin:0;
-    letter-spacing:0.2px;
-  }
-  .brand p{
-    margin:0;
-    font-size:11.5px;
-    letter-spacing:1.5px;
-    text-transform:uppercase;
-    color:#C9CBB6;
-  }
-  .topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .mode-badge{
-    font-family:var(--font-mono);
-    font-size:11px;
-    padding:6px 10px;
-    border-radius:20px;
-    background:rgba(255,255,255,0.08);
-    border:1px solid rgba(255,255,255,0.18);
-    display:flex;align-items:center;gap:6px;
-  }
-  .mode-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);}
-  .mode-dot.live{background:var(--available);}
-  .btn{
-    border:none;
-    border-radius:9px;
-    padding:10px 16px;
-    font-size:13.5px;
-    font-weight:600;
-    transition:transform .12s ease, box-shadow .12s ease, background .15s ease;
-    display:inline-flex;align-items:center;gap:8px;
-  }
-  .btn:active{transform:translateY(1px);}
-  .btn-primary{background:var(--orange);color:#fff;}
-  .btn-primary:hover{background:var(--orange-dark);}
-  .btn-ghost{background:rgba(255,255,255,0.1);color:#F2F0E4;border:1px solid rgba(255,255,255,0.25);}
-  .btn-ghost:hover{background:rgba(255,255,255,0.18);}
-  .btn-outline{background:transparent;border:1.5px solid var(--line-strong);color:var(--ink);}
-  .btn-outline:hover{border-color:var(--orange);color:var(--orange-dark);}
-  .btn-danger{background:var(--rented);color:#fff;}
-  .btn-danger:hover{background:#94261C;}
-  .btn-sm{padding:7px 12px;font-size:12.5px;border-radius:7px;}
-  .btn:disabled{opacity:0.5;cursor:not-allowed;}
-
-  /* ---------- Stats strip ---------- */
-  .stats-strip{
-    max-width:1280px;margin:22px auto 0;padding:0 28px;
-    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
-  }
-  .stat-card{
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:16px 18px;
-    position:relative;
-    overflow:hidden;
-  }
-  .stat-card::before{
-    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--stat-color,var(--orange));
-  }
-  .stat-num{font-family:var(--font-display);font-size:28px;font-weight:700;line-height:1;}
-  .stat-label{font-size:11.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-soft);margin-top:6px;}
-
-  /* ---------- Controls ---------- */
-  .controls{
-    max-width:1280px;margin:22px auto 0;padding:0 28px;
-    display:flex;gap:12px;flex-wrap:wrap;align-items:center;
-  }
-  .search-wrap{
-    flex:1 1 280px;position:relative;
-  }
-  .search-wrap input{
-    width:100%;padding:11px 14px 11px 38px;
-    border:1.5px solid var(--line);border-radius:10px;
-    font-size:14px;background:var(--surface);color:var(--ink);
-  }
-  .search-wrap input:focus{border-color:var(--orange);}
-  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:0.55;font-size:14px;}
-  select.filter{
-    padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;
-    background:var(--surface);color:var(--ink);font-size:13.5px;min-width:170px;
-  }
-  .view-toggle{display:flex;gap:8px;margin-left:auto;}
-
-  main{max-width:1280px;margin:0 auto;padding:24px 28px 80px;}
-  .section-heading{
-    display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 14px;
-  }
-  .section-heading h2{
-    font-family:var(--font-display);font-size:19px;margin:0;font-weight:600;
-  }
-  .result-count{font-size:12.5px;color:var(--ink-soft);font-family:var(--font-mono);}
-
-  /* ---------- Equipment grid & cards ---------- */
-  .grid{
-    display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:18px;
-  }
-  .card{
-    background:var(--surface);
-    border-radius:var(--radius);
-    border:1px solid var(--line);
-    box-shadow:var(--shadow);
-    overflow:hidden;
-    display:flex;flex-direction:column;
-    position:relative;
-    transition:transform .15s ease, box-shadow .15s ease;
-  }
-  .card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(32,40,27,0.14);}
-  .card .rivet{
-    position:absolute;width:6px;height:6px;border-radius:50%;
-    background:rgba(255,255,255,0.85);
-    box-shadow:0 0 0 1.5px rgba(32,40,27,0.25) inset, 0 1px 1px rgba(0,0,0,0.2);
-    z-index:2;
-  }
-  .card .rivet.tl{top:9px;left:9px;} .card .rivet.tr{top:9px;right:9px;}
-  .card-photo{
-    aspect-ratio:4/3;width:100%;background:var(--bg-soft);position:relative;overflow:hidden;
-  }
-  .card-photo img{width:100%;height:100%;object-fit:cover;}
-  .status-stamp{
-    position:absolute;top:10px;right:10px;
-    font-family:var(--font-mono);font-size:10.5px;font-weight:600;
-    letter-spacing:0.8px;text-transform:uppercase;
-    padding:4px 9px;border-radius:5px;
-    border:1.5px dashed;
-    transform:rotate(2deg);
-    backdrop-filter:blur(2px);
-  }
-  .status-stamp.available{color:var(--available);border-color:var(--available);background:rgba(231,241,228,0.92);}
-  .status-stamp.rented{color:var(--rented);border-color:var(--rented);background:rgba(247,231,227,0.92);}
-  .card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1;}
-  .card-cat{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);}
-  .card-name{font-family:var(--font-display);font-size:17px;font-weight:600;line-height:1.25;margin:0;}
-  .card-meta{font-size:12px;color:var(--ink-soft);}
-  .card-footer{
-    margin-top:auto;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;
-    border-top:1px dashed var(--line);
-  }
-  .price{font-family:var(--font-mono);font-weight:600;font-size:15px;}
-  .price span{font-size:11px;color:var(--ink-soft);font-weight:400;}
-  .empty-state{
-    grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--ink-soft);
-  }
-  .empty-state h3{font-family:var(--font-display);color:var(--ink);margin-bottom:6px;}
-
-  /* ---------- Modal ---------- */
-  .modal-overlay{
-    position:fixed;inset:0;background:rgba(20,24,15,0.55);
-    display:none;align-items:flex-start;justify-content:center;
-    padding:32px 16px;overflow-y:auto;z-index:100;
-  }
-  .modal-overlay.open{display:flex;}
-  .modal{
-    background:var(--surface);border-radius:16px;max-width:900px;width:100%;
-    box-shadow:0 24px 60px rgba(0,0,0,0.3);position:relative;overflow:hidden;
-    animation:pop .18s ease;
-  }
-  @keyframes pop{from{transform:translateY(8px) scale(0.98);opacity:0;}to{transform:none;opacity:1;}}
-  .modal-close{
-    position:absolute;top:14px;right:14px;z-index:5;
-    width:32px;height:32px;border-radius:50%;border:none;
-    background:rgba(20,24,15,0.55);color:#fff;font-size:16px;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .modal-close:hover{background:rgba(20,24,15,0.8);}
-  .detail-grid{display:grid;grid-template-columns:1fr 1fr;}
-  .detail-photo{background:var(--bg-soft);}
-  .detail-photo img{width:100%;height:100%;object-fit:cover;min-height:280px;}
-  .detail-info{padding:26px 28px;max-height:80vh;overflow-y:auto;}
-  .detail-id{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-soft);letter-spacing:0.5px;}
-  .detail-info h2{font-family:var(--font-display);font-size:26px;margin:4px 0 2px;}
-  .detail-tags{display:flex;gap:8px;margin:8px 0 16px;flex-wrap:wrap;}
-  .tag{
-    font-size:11px;padding:4px 10px;border-radius:20px;background:var(--bg-soft);
-    color:var(--ink-soft);font-weight:600;letter-spacing:0.3px;
-  }
-  .detail-desc{font-size:14px;line-height:1.6;color:var(--ink-soft);margin-bottom:16px;}
-  .detail-section-title{
-    font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:1.2px;
-    color:var(--ink-soft);margin:18px 0 8px;
-  }
-  .feature-list{list-style:none;padding:0;margin:0;display:grid;gap:6px;}
-  .feature-list li{font-size:13.5px;padding-left:20px;position:relative;}
-  .feature-list li::before{content:"✓";position:absolute;left:0;color:var(--available);font-weight:700;}
-  .spec-table{width:100%;border-collapse:collapse;font-size:13px;}
-  .spec-table td{padding:7px 0;border-bottom:1px solid var(--line);}
-  .spec-table td:first-child{color:var(--ink-soft);width:45%;}
-  .spec-table td:last-child{font-weight:600;font-family:var(--font-mono);}
-  .price-box{
-    display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0;
-    background:var(--bg-soft);border-radius:10px;padding:14px;
-  }
-  .price-box .num{font-family:var(--font-mono);font-size:19px;font-weight:700;}
-  .price-box .lbl{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.6px;}
-  .avail-box{display:flex;gap:18px;margin-bottom:18px;flex-wrap:wrap;}
-  .avail-box .item{font-size:13px;}
-  .avail-box .item b{display:block;font-family:var(--font-mono);font-size:17px;}
-  .detail-actions{display:flex;gap:10px;margin-top:20px;}
-
-  /* ---------- Forms / Admin ---------- */
-  .admin-bar{
-    display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;
-  }
-  .table-wrap{
-    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow-x:auto;
-  }
-  table.admin-table{width:100%;border-collapse:collapse;font-size:13px;min-width:900px;}
-  table.admin-table th{
-    text-align:left;padding:12px 14px;background:var(--bg-soft);
-    font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-soft);
-    position:sticky;top:0;
-  }
-  table.admin-table td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:middle;}
-  table.admin-table img{width:44px;height:32px;object-fit:cover;border-radius:5px;}
-  .row-actions{display:flex;gap:6px;}
-  .badge{
-    font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-block;
-  }
-  .badge.available{background:var(--available-bg);color:var(--available);}
-  .badge.rented{background:var(--rented-bg);color:var(--rented);}
-
-  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:24px 28px;max-height:80vh;overflow-y:auto;}
-  .form-grid.single{grid-template-columns:1fr;}
-  .field{display:flex;flex-direction:column;gap:6px;}
-  .field.full{grid-column:1/-1;}
-  .field label{font-size:12px;font-weight:600;color:var(--ink-soft);}
-  .field input,.field select,.field textarea{
-    padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;background:#fff;
-  }
-  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--orange);}
-  .field textarea{resize:vertical;min-height:70px;}
-  .field small{color:var(--ink-soft);font-size:11px;}
-  .form-actions{grid-column:1/-1;display:flex;gap:10px;justify-content:flex-end;padding-top:6px;border-top:1px dashed var(--line);margin-top:4px;}
-  .img-preview{width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--bg-soft);}
-
-  .tabs{display:flex;gap:4px;background:rgba(255,255,255,0.08);padding:4px;border-radius:10px;}
-  .tab-btn{
-    background:transparent;border:none;color:#D6D8C4;padding:8px 14px;border-radius:7px;font-size:13px;font-weight:600;
-  }
-  .tab-btn.active{background:var(--orange);color:#fff;}
-  .view{display:none;}
-  .view.active{display:block;}
-
-  .toast-stack{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;}
-  .toast{
-    background:var(--ink);color:#F2F0E4;padding:12px 16px;border-radius:9px;font-size:13.5px;
-    box-shadow:0 8px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:8px;
-    animation:slidein .2s ease;border-left:4px solid var(--available);min-width:220px;
-  }
-  .toast.error{border-left-color:var(--rented);}
-  @keyframes slidein{from{transform:translateX(30px);opacity:0;}to{transform:none;opacity:1;}}
-
-  footer{text-align:center;padding:30px;color:var(--ink-soft);font-size:12px;}
-  footer code{background:var(--bg-soft);padding:2px 6px;border-radius:5px;font-family:var(--font-mono);}
-
-  @media (max-width:760px){
-    .detail-grid{grid-template-columns:1fr;}
-    .detail-photo img{min-height:200px;}
-    .stats-strip{grid-template-columns:repeat(2,1fr);}
-    .form-grid{grid-template-columns:1fr;}
-    .topbar{padding:14px 16px;}
-    .controls,main,.stats-strip{padding-left:16px;padding-right:16px;}
-  }
-</style>
+<title>FieldStock - Farm Equipment Rental System</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="topbar">
-  <div class="brand">
-    <div class="brand-mark">🚜</div>
-    <div>
-      <h1>FieldStock</h1>
-      <p>Farm Equipment Rental Yard</p>
-    </div>
+  <div>
+    <h1>FieldStock</h1>
+    <p>Farm Equipment Rental Management System</p>
   </div>
   <div class="topbar-actions">
-    <span class="mode-badge" id="modeBadge"><span class="mode-dot" id="modeDot"></span><span id="modeText">Demo Mode</span></span>
+    <span id="modeText">Connecting...</span>
     <div class="tabs">
       <button class="tab-btn active" id="tabCatalog" onclick="switchView('catalog')">Catalog</button>
       <button class="tab-btn" id="tabAdmin" onclick="switchView('admin')">Admin</button>
@@ -355,18 +24,8 @@
 
 <!-- ================= CATALOG VIEW ================= -->
 <div id="viewCatalog" class="view active">
-  <div class="stats-strip">
-    <div class="stat-card" style="--stat-color:var(--orange)"><div class="stat-num" id="statTypes">0</div><div class="stat-label">Equipment Types</div></div>
-    <div class="stat-card" style="--stat-color:var(--green)"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Units</div></div>
-    <div class="stat-card" style="--stat-color:var(--available)"><div class="stat-num" id="statAvail">0</div><div class="stat-label">Units Available</div></div>
-    <div class="stat-card" style="--stat-color:var(--rented)"><div class="stat-num" id="statRented">0</div><div class="stat-label">Units Rented Out</div></div>
-  </div>
-
   <div class="controls">
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Search by name, brand or model…">
-    </div>
+    <input type="text" id="searchInput" placeholder="Search by name, brand or model...">
     <select class="filter" id="categoryFilter"><option value="">All Categories</option></select>
     <select class="filter" id="availFilter">
       <option value="">All Availability</option>
@@ -377,8 +36,8 @@
 
   <main>
     <div class="section-heading">
-      <h2>Equipment Yard</h2>
-      <span class="result-count" id="resultCount"></span>
+      <h2>Equipment List</h2>
+      <span id="resultCount"></span>
     </div>
     <div class="grid" id="equipmentGrid"></div>
   </main>
@@ -388,9 +47,14 @@
 <div id="viewAdmin" class="view">
   <main>
     <div class="admin-bar">
-      <h2 style="font-family:var(--font-display);margin:0;">Inventory Management</h2>
-      <button class="btn btn-primary" onclick="openEquipmentForm()">+ Add Equipment</button>
+      <h2>Inventory Management (Admin)</h2>
+      <button class="btn btn-blue" onclick="openEquipmentForm()">+ Add Equipment</button>
     </div>
+
+    <div class="controls" style="margin:0 0 12px; padding:0;">
+      <input type="text" id="adminSearch" placeholder="Search equipment...">
+    </div>
+
     <div class="table-wrap">
       <table class="admin-table">
         <thead>
@@ -407,17 +71,17 @@
 
 <!-- ================= DETAIL MODAL ================= -->
 <div class="modal-overlay" id="detailOverlay">
-  <div class="modal" style="max-width:900px;">
-    <button class="modal-close" onclick="closeModal('detailOverlay')">✕</button>
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('detailOverlay')">X</button>
     <div class="detail-grid" id="detailContent"></div>
   </div>
 </div>
 
 <!-- ================= EQUIPMENT FORM MODAL (Admin) ================= -->
 <div class="modal-overlay" id="formOverlay">
-  <div class="modal" style="max-width:760px;">
-    <button class="modal-close" onclick="closeModal('formOverlay')">✕</button>
-    <h2 style="font-family:var(--font-display);padding:24px 28px 0;margin:0;" id="formTitle">Add Equipment</h2>
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('formOverlay')">X</button>
+    <h2 style="padding:20px 20px 0; margin:0;" id="formTitle">Add Equipment</h2>
     <form id="equipmentForm" class="form-grid" onsubmit="handleFormSubmit(event)">
       <input type="hidden" id="f_id">
       <div class="field"><label>Equipment Name *</label><input id="f_name" required placeholder="e.g. Compact Utility Tractor 25HP"></div>
@@ -425,7 +89,7 @@
         <select id="f_category" required>
           <option>Tractors</option><option>Harvesters</option><option>Tillage Equipment</option>
           <option>Planting Equipment</option><option>Irrigation</option><option>Sprayers</option>
-          <option>Trailers &amp; Transport</option><option>Post-Harvest</option><option>Power Tools</option>
+          <option>Trailers & Transport</option><option>Post-Harvest</option><option>Power Tools</option>
         </select>
       </div>
       <div class="field"><label>Brand *</label><input id="f_brand" required placeholder="e.g. AgroMax"></div>
@@ -434,16 +98,16 @@
         <select id="f_condition"><option>Excellent</option><option>Good</option><option>Fair</option></select>
       </div>
       <div class="field"><label>Image URL (Google Drive link)</label><input id="f_image" placeholder="https://drive.google.com/uc?id=..."></div>
-      <div class="field full"><label>Description</label><textarea id="f_description" placeholder="Short description of the equipment…"></textarea></div>
+      <div class="field full"><label>Description</label><textarea id="f_description" placeholder="Short description..."></textarea></div>
       <div class="field full"><label>Features (comma separated)</label><input id="f_features" placeholder="4WD, Power steering, LED lights"></div>
       <div class="field full"><label>Specifications (key:value, comma separated)</label><input id="f_specs" placeholder="Engine:25HP, Fuel Tank:45L, Weight:1200kg"></div>
-      <div class="field"><label>Rent / Day (₹) *</label><input id="f_rent" type="number" min="0" required></div>
-      <div class="field"><label>Security Deposit (₹) *</label><input id="f_deposit" type="number" min="0" required></div>
+      <div class="field"><label>Rent / Day (Rs) *</label><input id="f_rent" type="number" min="0" required></div>
+      <div class="field"><label>Security Deposit (Rs) *</label><input id="f_deposit" type="number" min="0" required></div>
       <div class="field"><label>Total Quantity *</label><input id="f_total" type="number" min="0" required onchange="syncAvailMax()"></div>
       <div class="field"><label>Available Quantity *</label><input id="f_avail" type="number" min="0" required></div>
       <div class="form-actions">
         <button type="button" class="btn btn-outline" onclick="closeModal('formOverlay')">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="formSubmitBtn">Save Equipment</button>
+        <button type="submit" class="btn btn-blue" id="formSubmitBtn">Save Equipment</button>
       </div>
     </form>
   </div>
@@ -451,20 +115,20 @@
 
 <!-- ================= RENT MODAL ================= -->
 <div class="modal-overlay" id="rentOverlay">
-  <div class="modal" style="max-width:460px;">
-    <button class="modal-close" onclick="closeModal('rentOverlay')">✕</button>
-    <h2 style="font-family:var(--font-display);padding:24px 28px 0;margin:0;">Rent Equipment</h2>
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="closeModal('rentOverlay')">X</button>
+    <h2 style="padding:20px 20px 0; margin:0;">Rent Equipment</h2>
     <form id="rentForm" class="form-grid single" onsubmit="submitRent(event)">
       <input type="hidden" id="r_id">
-      <div class="field"><label>Renting: </label><div id="r_equipName" style="font-weight:600;"></div></div>
+      <div class="field"><label>Renting:</label><div id="r_equipName" style="font-weight:bold;"></div></div>
       <div class="field"><label>Your Name *</label><input id="r_name" required></div>
       <div class="field"><label>Phone Number *</label><input id="r_phone" required></div>
       <div class="field"><label>Quantity *</label><input id="r_qty" type="number" min="1" value="1" required></div>
       <div class="field"><label>Number of Days *</label><input id="r_days" type="number" min="1" value="1" required></div>
-      <div class="field"><label>Estimated Total</label><div id="r_total" style="font-family:var(--font-mono);font-weight:700;font-size:18px;"></div></div>
+      <div class="field"><label>Estimated Total</label><div id="r_total" style="font-weight:bold;font-size:16px;"></div></div>
       <div class="form-actions">
         <button type="button" class="btn btn-outline" onclick="closeModal('rentOverlay')">Cancel</button>
-        <button type="submit" class="btn btn-primary">Confirm Rental</button>
+        <button type="submit" class="btn btn-blue">Confirm Rental</button>
       </div>
     </form>
   </div>
@@ -473,19 +137,10 @@
 <div class="toast-stack" id="toastStack"></div>
 
 <footer>
-  FieldStock — connect to a live Google Apps Script backend by setting <code>CONFIG.API_URL</code> and <code>CONFIG.DEMO_MODE = false</code> near the top of the script. See the included <code>SETUP_GUIDE.md</code>.
+  FieldStock - Farm Equipment Rental Management System (College Project)
 </footer>
 
-<script>
-/* =========================================================================
-   CONFIG — point this at your deployed Google Apps Script Web App URL
-   ========================================================================= */
-const CONFIG = {
-  API_URL: "",          // e.g. "https://script.google.com/macros/s/XXXXX/exec"
-  DEMO_MODE: true,       // set false once API_URL is set to a live deployment
-  ADMIN_PASSWORD: "admin123" // demo-only client gate; replace with real auth in production
-};
-</script>
+<script src="config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
