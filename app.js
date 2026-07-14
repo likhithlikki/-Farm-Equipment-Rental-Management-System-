@@ -347,7 +347,6 @@ async function handleDelete(id){
 }
 
 /* ---------------- Admin: add/edit form ---------------- */
-/* ---------------- Admin: add/edit form ---------------- */
 function openEquipmentForm(id){
   const form = document.getElementById("equipmentForm");
   form.reset();
@@ -457,100 +456,5 @@ document.addEventListener("click", (e)=>{
 document.addEventListener("keydown", (e)=>{
   if (e.key === "Escape") document.querySelectorAll(".modal-overlay.open").forEach(m=>m.classList.remove("open"));
 });
-
-boot();
-
-  const id = document.getElementById("f_id").value;
-  const total = Number(document.getElementById("f_total").value);
-  const avail = Number(document.getElementById("f_avail").value);
-  if (avail > total){ toast("Available quantity cannot exceed total quantity", "error"); return; }
-
-  const payload = {
-    name: document.getElementById("f_name").value,
-    category: document.getElementById("f_category").value,
-    brand: document.getElementById("f_brand").value,
-    model: document.getElementById("f_model").value,
-    condition: document.getElementById("f_condition").value,
-    imageURL: document.getElementById("f_image").value,
-    description: document.getElementById("f_description").value,
-    features: document.getElementById("f_features").value.split(",").map(s=>s.trim()).filter(Boolean),
-    specifications: Object.fromEntries(
-      document.getElementById("f_specs").value.split(",").map(s=>s.trim()).filter(Boolean).map(pair=>{
-        const [k,...rest] = pair.split(":"); return [(k||"").trim(), rest.join(":").trim()];
-      })
-    ),
-    rentPerDay: Number(document.getElementById("f_rent").value),
-    securityDeposit: Number(document.getElementById("f_deposit").value),
-    totalQuantity: total,
-    availableQuantity: avail,
-  };
-
-  const btn = document.getElementById("formSubmitBtn");
-  btn.disabled = true; btn.textContent = "Saving...";
-  try{
-    const res = id ? await apiCall("update", { id, ...payload }) : await apiCall("create", payload);
-    if (!res.ok){ toast(res.error || "Save failed", "error"); return; }
-    await refreshEquipment();
-    closeModal("formOverlay");
-    toast(id ? "Equipment updated" : "Equipment added");
-  } finally {
-    btn.disabled = false; btn.textContent = "Save Equipment";
-  }
-}
-
-async function refreshEquipment(){
-  const res = await apiCall("list");
-  STATE.equipment = res.data || [];
-  populateCategoryFilter();
-  applyFilters();
-  renderAdminTable();
-}
-
-/* ---------------- View / modal helpers ---------------- */
-function switchView(view){
-  const wantsAdmin = view === "admin";
-  if (wantsAdmin && !STATE.isAdmin){
-    const pw = prompt("Enter admin password (demo):");
-    if (pw !== CONFIG.ADMIN_PASSWORD){
-      if (pw !== null) toast("Incorrect password", "error");
-      return;
-    }
-    STATE.isAdmin = true;
-  }
-  document.getElementById("viewCatalog").classList.toggle("active", !wantsAdmin);
-  document.getElementById("viewAdmin").classList.toggle("active", wantsAdmin);
-  document.getElementById("tabCatalog").classList.toggle("active", !wantsAdmin);
-  document.getElementById("tabAdmin").classList.toggle("active", wantsAdmin);
-}
-function openModal(id){ document.getElementById(id).classList.add("open"); }
-function closeModal(id){ document.getElementById(id).classList.remove("open"); }
-document.addEventListener("click", (e)=>{
-  if (e.target.classList.contains("modal-overlay")) e.target.classList.remove("open");
-});
-document.addEventListener("keydown", (e)=>{
-  if (e.key === "Escape") document.querySelectorAll(".modal-overlay.open").forEach(m=>m.classList.remove("open"));
-});
-
-
-
-async function handleFormSubmit(evt){
-  evt.preventDefault();
-  ...
-  const btn = document.getElementById("formSubmitBtn");
-  btn.disabled = true; btn.textContent = "Saving...";
-  try{
-    const res = id ? await apiCall("update", { id, ...payload }) : await apiCall("create", payload);
-    if (!res.ok){ toast(res.error || "Save failed", "error"); return; }
-    await refreshEquipment();
-    closeModal("formOverlay");
-    toast(id ? "Equipment updated" : "Equipment added");
-  } catch (err) {
-    toast("Network error — please check your connection and try again", "error");
-  } finally {
-    btn.disabled = false; btn.textContent = "Save Equipment";
-  }
-}
-
-
 
 boot();
