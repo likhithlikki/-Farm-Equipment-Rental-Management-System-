@@ -1,7 +1,8 @@
 /* =========================================================================
    FieldStock — Farm Equipment Rental Management System
-   Frontend logic. Works standalone in DEMO_MODE (localStorage) and switches
-   seamlessly to a live Google Apps Script backend when CONFIG.DEMO_MODE=false.
+   Simple frontend logic. Uses the same API actions / JSON fields as the
+   Google Apps Script backend (Code.gs): list, get, create, update, delete,
+   rent, return. Nothing here changes those field names or the payloads.
    ========================================================================= */
 
 let STATE = {
@@ -9,185 +10,52 @@ let STATE = {
   isAdmin: false,
 };
 
-/* ---------------- Category icon / placeholder image ---------------- */
-const CATEGORY_META = {
-  "Tractors":            { emoji:"🚜", color:"#E2622B" },
-  "Harvesters":           { emoji:"🌾", color:"#C98A1F" },
-  "Tillage Equipment":    { emoji:"⚙️", color:"#4C6B3D" },
-  "Planting Equipment":   { emoji:"🌱", color:"#3F7D45" },
-  "Irrigation":           { emoji:"💧", color:"#2E6E8E" },
-  "Sprayers":             { emoji:"💦", color:"#3A7CA5" },
-  "Trailers & Transport":{ emoji:"🚛", color:"#6B4C3D" },
-  "Post-Harvest":         { emoji:"🌽", color:"#B2841F" },
-  "Power Tools":          { emoji:"🔧", color:"#7A4C6B" },
+/* ---------------- Simple placeholder image (no gradients) ---------------- */
+const CATEGORY_COLOR = {
+  "Tractors": "#3B6EA5",
+  "Harvesters": "#3B6EA5",
+  "Tillage Equipment": "#3B6EA5",
+  "Planting Equipment": "#3B6EA5",
+  "Irrigation": "#3B6EA5",
+  "Sprayers": "#3B6EA5",
+  "Trailers & Transport": "#3B6EA5",
+  "Post-Harvest": "#3B6EA5",
+  "Power Tools": "#3B6EA5",
 };
 function placeholderImage(category){
-  const meta = CATEGORY_META[category] || { emoji:"🔩", color:"#54604A" };
+  const color = CATEGORY_COLOR[category] || "#8A8A8A";
   const svg = `
   <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-    <rect width="400" height="300" fill="${meta.color}"/>
-    <rect width="400" height="300" fill="url(#g)"/>
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
-        <stop offset="1" stop-color="#000000" stop-opacity="0.12"/>
-      </linearGradient>
-    </defs>
-    <text x="200" y="175" font-size="96" text-anchor="middle" dominant-baseline="middle">${meta.emoji}</text>
-    <text x="200" y="255" font-size="14" fill="#ffffffcc" text-anchor="middle" font-family="monospace" letter-spacing="2">${category.toUpperCase()}</text>
+    <rect width="400" height="300" fill="#F2F2F2"/>
+    <rect width="400" height="300" fill="none" stroke="${color}" stroke-width="4"/>
+    <text x="200" y="150" font-size="18" fill="${color}" text-anchor="middle"
+      font-family="Arial" dominant-baseline="middle">${escapeHtml(category || "Equipment")}</text>
   </svg>`;
   return "data:image/svg+xml," + encodeURIComponent(svg);
 }
 
-/* ---------------- Seed / demo data ---------------- */
-function seedData(){
-  const rows = [
-    ["Compact Utility Tractor 25HP","Tractors","AgroMax","AM-25U","Excellent",1250,15000,4,2,
-      "Nimble tractor ideal for small plots, orchards and light haulage.",
-      "4WD,Power steering,LED work lights,PTO shaft",
-      "Engine:25 HP,Fuel Tank:35 L,Transmission:8F+2R,Weight:1150 kg"],
-    ["Heavy Duty Farm Tractor 75HP","Tractors","TerraTech","TT-75H","Good",2600,40000,3,1,
-      "High-torque tractor built for deep ploughing and heavy implement towing.",
-      "4WD,Dual clutch,Hydraulic lift,Canopy",
-      "Engine:75 HP,Fuel Tank:65 L,Transmission:12F+4R,Weight:2600 kg"],
-    ["4WD All-Terrain Tractor 90HP","Tractors","FarmPro","FP-90X","Excellent",3200,50000,2,2,
-      "All-terrain tractor for large-scale farms and hilly fields.",
-      "4WD,Turbocharged engine,AC cabin,GPS ready",
-      "Engine:90 HP,Fuel Tank:80 L,Transmission:16F+8R,Weight:3100 kg"],
-    ["Self-Propelled Combine Harvester","Harvesters","GreenField","GF-CH400","Good",5200,120000,2,0,
-      "Efficient combine for wheat, paddy and soybean harvesting.",
-      "Adjustable header,Grain tank sensor,Straw chopper",
-      "Header Width:4.2 m,Grain Tank:2200 L,Engine:130 HP"],
-    ["Mini Rice Harvester","Harvesters","PowerAgri","PA-RH2","Excellent",1800,25000,3,1,
-      "Compact harvester suited for small and terraced rice fields.",
-      "Lightweight chassis,Low fuel consumption,Easy maneuvering",
-      "Header Width:1.2 m,Engine:24 HP,Weight:850 kg"],
-    ["Sugarcane Harvester","Harvesters","TerraTech","TT-SC1","Fair",6000,150000,1,0,
-      "Heavy-duty machine for large sugarcane plantations.",
-      "Base cutter,Topper unit,High capacity elevator",
-      "Engine:250 HP,Cutting Width:1.5 m,Weight:14000 kg"],
-    ["Hydraulic Disc Plough","Tillage Equipment","AgroMax","AM-DP3","Good",700,8000,6,3,
-      "3-disc plough for primary tillage on medium to heavy soils.",
-      "Hydraulic depth control,Hardened steel discs",
-      "Discs:3,Working Width:0.9 m,Weight:320 kg"],
-    ["Rotavator (Rotary Tiller)","Tillage Equipment","FarmPro","FP-RT6","Excellent",900,10000,5,2,
-      "Prepares seedbeds quickly by breaking and mixing soil in one pass.",
-      "Side drive gearbox,Adjustable tilling depth,Slip clutch",
-      "Working Width:1.8 m,Blades:36,Weight:420 kg"],
-    ["Spring Loaded Cultivator","Tillage Equipment","GreenField","GF-CL9","Good",550,6000,7,4,
-      "Loosens soil and removes weeds ahead of planting.",
-      "Spring-loaded tynes,Adjustable row spacing",
-      "Tynes:9,Working Width:2.1 m,Weight:280 kg"],
-    ["Multi-Crop Seed Drill","Planting Equipment","AgroMax","AM-SD11","Excellent",850,9000,4,1,
-      "Precision seed drill for uniform seed and fertilizer placement.",
-      "Adjustable seed rate,Fertilizer box,Furrow openers",
-      "Rows:11,Working Width:2.5 m,Hopper:120 L"],
-    ["Rice Transplanter","Planting Equipment","PowerAgri","PA-RT4","Good",1400,18000,3,0,
-      "Walk-behind transplanter for fast, uniform rice seedling planting.",
-      "4-row planting,Float-assisted balance,Low fuel use",
-      "Rows:4,Row Spacing:30 cm,Weight:210 kg"],
-    ["Automatic Potato Planter","Planting Equipment","TerraTech","TT-PP2","Fair",1100,14000,2,1,
-      "Two-row planter for accurate potato seed spacing and depth.",
-      "Adjustable spacing,Fertilizer attachment",
-      "Rows:2,Hopper Capacity:250 kg,Weight:480 kg"],
-    ["Sprinkler Irrigation Set","Irrigation","GreenField","GF-SI1","Excellent",450,5000,8,5,
-      "Portable sprinkler set for even water distribution across fields.",
-      "Rotating heads,Portable pipes,Pressure regulator",
-      "Coverage:0.4 ha/set,Pipe Length:100 m,Heads:6"],
-    ["Drip Irrigation Kit","Irrigation","AgroMax","AM-DI1","Good",380,4500,6,3,
-      "Water-efficient drip system ideal for row crops and orchards.",
-      "Pressure-compensated emitters,Filter unit included",
-      "Coverage:0.5 ha/kit,Emitter Spacing:30 cm"],
-    ["Diesel Water Pump 5HP","Irrigation","FarmPro","FP-WP5","Excellent",300,4000,10,6,
-      "Reliable pump for lifting irrigation water from wells and canals.",
-      "Self-priming,Low vibration,Portable frame",
-      "Power:5 HP,Discharge:900 L/min,Suction Head:7 m"],
-    ["Tractor-Mounted Boom Sprayer","Sprayers","TerraTech","TT-BS500","Good",750,8500,4,1,
-      "Wide-coverage boom sprayer for pesticide and fertilizer application.",
-      "Adjustable boom width,Pressure gauge,Foldable arms",
-      "Tank:500 L,Boom Width:9 m,Nozzles:18"],
-    ["Knapsack Power Sprayer","Sprayers","PowerAgri","PA-KS16","Excellent",180,2000,12,8,
-      "Backpack sprayer with engine-driven pump for small to mid plots.",
-      "Adjustable nozzle,Padded straps,Easy-start engine",
-      "Tank:16 L,Engine:2-stroke,Weight:9 kg"],
-    ["Farm Trailer 2-Ton","Trailers & Transport","AgroMax","AM-FT2","Good",500,7000,5,2,
-      "Sturdy trailer for transporting harvest, feed and equipment.",
-      "Tipping mechanism,Mudguards,Heavy-duty axle",
-      "Capacity:2000 kg,Bed Size:2.4x1.5 m"],
-    ["Hydraulic Tipping Trailer 4-Ton","Trailers & Transport","GreenField","GF-HT4","Excellent",850,12000,3,1,
-      "Hydraulic tipping trailer for fast, effortless unloading.",
-      "Hydraulic ram,Reinforced chassis,Safety props",
-      "Capacity:4000 kg,Bed Size:3.0x1.8 m"],
-    ["Motorized Chaff Cutter","Post-Harvest","FarmPro","FP-CC1","Good",320,3500,6,3,
-      "Cuts fodder efficiently for livestock feed preparation.",
-      "Safety guard,Adjustable cut length,Electric motor",
-      "Power:5 HP,Output:1200 kg/hr"],
-    ["Multi-Crop Thresher Machine","Post-Harvest","TerraTech","TT-TH8","Excellent",950,11000,4,2,
-      "Threshes wheat, paddy and pulses with minimal grain loss.",
-      "Interchangeable sieves,Blower unit,Mobile chassis",
-      "Power:10 HP,Output:800 kg/hr,Weight:650 kg"],
-    ["Petrol Power Weeder","Power Tools","PowerAgri","PA-PW3","Excellent",280,3000,8,5,
-      "Lightweight power weeder for inter-row weeding and soil aeration.",
-      "Adjustable tilling width,Foldable handle,Easy-start",
-      "Power:3.5 HP,Working Width:60 cm,Weight:38 kg"],
-    ["Battery Backpack Sprayer","Power Tools","GreenField","GF-BS12","Good",150,1800,10,7,
-      "Rechargeable battery sprayer for quiet, fume-free operation.",
-      "Rechargeable battery,Adjustable pressure,Lightweight",
-      "Tank:12 L,Battery:12V/8Ah,Weight:5.5 kg"],
-  ];
-  return rows.map((r,i)=>{
-    const [name,category,brand,model,condition,rent,deposit,total,available,description,features,specs] = r;
-    return {
-      id: "EQ" + String(i+1).padStart(3,"0"),
-      name, category, brand, model, condition,
-      rentPerDay: rent, securityDeposit: deposit,
-      totalQuantity: total, availableQuantity: available,
-      rentedQuantity: total - available,
-      description,
-      features: features.split(",").map(s=>s.trim()),
-      specifications: Object.fromEntries(specs.split(",").map(s=>{
-        const [k,v] = s.split(":"); return [k.trim(), (v||"").trim()];
-      })),
-      imageURL: "",
-      status: available > 0 ? "Available" : "Rented",
-      createdAt: new Date().toISOString(),
-    };
-  });
-}
-
-function loadDemoData(){
-  const raw = localStorage.getItem("fieldstock_demo_data");
-  if (raw){ return JSON.parse(raw); }
-  const seeded = seedData();
-  localStorage.setItem("fieldstock_demo_data", JSON.stringify(seeded));
-  return seeded;
-}
-function saveDemoData(list){
-  localStorage.setItem("fieldstock_demo_data", JSON.stringify(list));
-}
-
 /* =========================================================================
-   API LAYER — every call here mirrors the Google Apps Script endpoints
-   defined in Code.gs. Swap DEMO_MODE off once a live deployment exists.
+   API LAYER — calls the live Apps Script backend (or demo/local fallback).
+   Actions and payload field names are unchanged from the backend contract.
    ========================================================================= */
 async function apiCall(action, payload){
   if (CONFIG.DEMO_MODE){
     return demoHandler(action, payload);
   }
   if (!CONFIG.API_URL){
-    throw new Error("CONFIG.API_URL is not set. Deploy Code.gs as a Web App and paste the URL in index.html.");
+    throw new Error("CONFIG.API_URL is not set.");
   }
   if (action === "list" || action === "get"){
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set("action", action);
     if (payload && payload.id) url.searchParams.set("id", payload.id);
-    const res = await fetch(url.toString(), { method:"GET" });
+    const res = await fetch(url.toString(), { method: "GET" });
     return res.json();
   }
-  // POST — use text/plain to avoid CORS preflight against Apps Script
+  // POST — text/plain avoids CORS preflight against Apps Script
   const res = await fetch(CONFIG.API_URL, {
-    method:"POST",
-    headers:{ "Content-Type":"text/plain;charset=utf-8" },
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ action, ...payload }),
   });
   return res.json();
@@ -199,18 +67,23 @@ function recalcStatus(item){
   return item;
 }
 
+/* ---------------- Optional local demo fallback (unused when DEMO_MODE=false) ---------------- */
+function loadDemoData(){
+  const raw = localStorage.getItem("fieldstock_demo_data");
+  return raw ? JSON.parse(raw) : [];
+}
+function saveDemoData(list){
+  localStorage.setItem("fieldstock_demo_data", JSON.stringify(list));
+}
 function demoHandler(action, payload){
   let list = loadDemoData();
   switch(action){
-    case "list":
-      return { ok:true, data:list };
-    case "get":
-      return { ok:true, data:list.find(e=>e.id===payload.id) || null };
+    case "list": return { ok:true, data:list };
+    case "get": return { ok:true, data:list.find(e=>e.id===payload.id) || null };
     case "create": {
       const id = "EQ" + String(Date.now()).slice(-6);
       const item = recalcStatus({ id, createdAt:new Date().toISOString(), ...payload });
-      list.push(item);
-      saveDemoData(list);
+      list.push(item); saveDemoData(list);
       return { ok:true, data:item };
     }
     case "update": {
@@ -229,12 +102,9 @@ function demoHandler(action, payload){
       const idx = list.findIndex(e=>e.id===payload.id);
       if (idx === -1) return { ok:false, error:"Equipment not found" };
       const item = list[idx];
-      if (payload.quantity > item.availableQuantity){
-        return { ok:false, error:"Not enough units available" };
-      }
+      if (payload.quantity > item.availableQuantity) return { ok:false, error:"Not enough units available" };
       item.availableQuantity -= payload.quantity;
-      recalcStatus(item);
-      saveDemoData(list);
+      recalcStatus(item); saveDemoData(list);
       return { ok:true, data:item };
     }
     case "return": {
@@ -242,32 +112,35 @@ function demoHandler(action, payload){
       if (idx === -1) return { ok:false, error:"Equipment not found" };
       const item = list[idx];
       item.availableQuantity = Math.min(item.totalQuantity, item.availableQuantity + payload.quantity);
-      recalcStatus(item);
-      saveDemoData(list);
+      recalcStatus(item); saveDemoData(list);
       return { ok:true, data:item };
     }
-    default:
-      return { ok:false, error:"Unknown action" };
+    default: return { ok:false, error:"Unknown action" };
   }
 }
 
-/* ---------------- Toasts ---------------- */
+/* ---------------- Simple toast messages ---------------- */
 function toast(msg, type="ok"){
   const stack = document.getElementById("toastStack");
   const el = document.createElement("div");
   el.className = "toast" + (type==="error" ? " error" : "");
   el.textContent = msg;
   stack.appendChild(el);
-  setTimeout(()=>el.remove(), 3200);
+  setTimeout(()=>el.remove(), 3000);
 }
 
 /* ---------------- Boot ---------------- */
 async function boot(){
-  document.getElementById("modeDot").classList.toggle("live", !CONFIG.DEMO_MODE);
-  document.getElementById("modeText").textContent = CONFIG.DEMO_MODE ? "Demo Mode (local data)" : "Connected — Live Backend";
+  document.getElementById("modeText").textContent = CONFIG.DEMO_MODE ? "Demo Mode" : "Connected to Backend";
 
-  const res = await apiCall("list");
-  STATE.equipment = res.data || [];
+  try{
+    const res = await apiCall("list");
+    STATE.equipment = res.data || [];
+  } catch(err){
+    toast("Could not load equipment from backend", "error");
+    STATE.equipment = [];
+  }
+
   populateCategoryFilter();
   applyFilters();
   renderAdminTable();
@@ -275,10 +148,12 @@ async function boot(){
   document.getElementById("searchInput").addEventListener("input", applyFilters);
   document.getElementById("categoryFilter").addEventListener("change", applyFilters);
   document.getElementById("availFilter").addEventListener("change", applyFilters);
+  document.getElementById("adminSearch").addEventListener("input", renderAdminTable);
 }
 
 function populateCategoryFilter(){
   const sel = document.getElementById("categoryFilter");
+  sel.querySelectorAll("option:not(:first-child)").forEach(o=>o.remove());
   const cats = [...new Set(STATE.equipment.map(e=>e.category))].sort();
   cats.forEach(c=>{
     const opt = document.createElement("option");
@@ -287,7 +162,7 @@ function populateCategoryFilter(){
   });
 }
 
-/* ---------------- Filtering & rendering ---------------- */
+/* ---------------- Filtering & rendering (Catalog) ---------------- */
 function applyFilters(){
   const q = document.getElementById("searchInput").value.trim().toLowerCase();
   const cat = document.getElementById("categoryFilter").value;
@@ -300,23 +175,15 @@ function applyFilters(){
     return matchesQ && matchesCat && matchesAvail;
   });
 
-  renderStats(STATE.equipment);
   renderGrid(list);
   document.getElementById("resultCount").textContent = `${list.length} of ${STATE.equipment.length} shown`;
-}
-
-function renderStats(list){
-  document.getElementById("statTypes").textContent = list.length;
-  document.getElementById("statTotal").textContent = list.reduce((a,e)=>a+Number(e.totalQuantity||0),0);
-  document.getElementById("statAvail").textContent = list.reduce((a,e)=>a+Number(e.availableQuantity||0),0);
-  document.getElementById("statRented").textContent = list.reduce((a,e)=>a+Number(e.rentedQuantity||0),0);
 }
 
 function renderGrid(list){
   const grid = document.getElementById("equipmentGrid");
   grid.innerHTML = "";
   if (list.length === 0){
-    grid.innerHTML = `<div class="empty-state"><h3>No equipment matches your filters</h3><p>Try clearing the search or filters above.</p></div>`;
+    grid.innerHTML = `<p class="empty-state">No equipment matches your search/filters.</p>`;
     return;
   }
   list.forEach(item=>{
@@ -324,20 +191,16 @@ function renderGrid(list){
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <span class="rivet tl"></span><span class="rivet tr"></span>
-      <div class="card-photo">
-        <img src="${item.imageURL || placeholderImage(item.category)}" alt="${escapeHtml(item.name)}" loading="lazy"
-             onerror="this.src='${placeholderImage(item.category)}'">
-        <span class="status-stamp ${isAvail ? 'available':'rented'}">${isAvail ? 'Available' : 'Rented Out'}</span>
-      </div>
+      <img class="card-img" src="${item.imageURL || placeholderImage(item.category)}" alt="${escapeHtml(item.name)}"
+           onerror="this.src='${placeholderImage(item.category)}'">
       <div class="card-body">
-        <span class="card-cat">${item.category}</span>
         <h3 class="card-name">${escapeHtml(item.name)}</h3>
-        <span class="card-meta">${escapeHtml(item.brand)} · ${escapeHtml(item.model)}</span>
-        <div class="card-footer">
-          <div class="price">₹${Number(item.rentPerDay).toLocaleString()} <span>/ day</span></div>
-          <button class="btn btn-outline btn-sm" onclick="openDetail('${item.id}')">View Details</button>
-        </div>
+        <p class="card-cat">${escapeHtml(item.category)}</p>
+        <p class="card-rent">Rent: ₹${Number(item.rentPerDay).toLocaleString()} / day</p>
+        <p class="card-status ${isAvail ? 'status-available' : 'status-rented'}">
+          ${isAvail ? 'Available' : 'Rented Out'}
+        </p>
+        <button class="btn btn-blue btn-block" onclick="openDetail('${item.id}')">View Details</button>
       </div>
     `;
     grid.appendChild(card);
@@ -354,41 +217,35 @@ function openDetail(id){
   if (!item) return;
   const isAvail = item.availableQuantity > 0;
   const featuresHtml = (item.features||[]).map(f=>`<li>${escapeHtml(f)}</li>`).join("");
-  const specsHtml = Object.entries(item.specifications||{}).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`).join("");
+  const specsHtml = Object.entries(item.specifications||{})
+    .map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`).join("");
 
   document.getElementById("detailContent").innerHTML = `
-    <div class="detail-photo">
-      <img src="${item.imageURL || placeholderImage(item.category)}" alt="${escapeHtml(item.name)}"
-           onerror="this.src='${placeholderImage(item.category)}'">
-    </div>
+    <img class="detail-img" src="${item.imageURL || placeholderImage(item.category)}" alt="${escapeHtml(item.name)}"
+         onerror="this.src='${placeholderImage(item.category)}'">
     <div class="detail-info">
-      <div class="detail-id">EQUIPMENT ID · ${item.id}</div>
+      <p class="detail-id">Equipment ID: ${item.id}</p>
       <h2>${escapeHtml(item.name)}</h2>
-      <div class="detail-tags">
-        <span class="tag">${item.category}</span>
-        <span class="tag">${escapeHtml(item.brand)}</span>
-        <span class="tag">${escapeHtml(item.model)}</span>
-        <span class="tag">Condition: ${item.condition}</span>
-      </div>
+      <table class="plain-table">
+        <tr><td>Category</td><td>${escapeHtml(item.category)}</td></tr>
+        <tr><td>Brand</td><td>${escapeHtml(item.brand)}</td></tr>
+        <tr><td>Model</td><td>${escapeHtml(item.model)}</td></tr>
+        <tr><td>Condition</td><td>${escapeHtml(item.condition)}</td></tr>
+        <tr><td>Rent / Day</td><td>₹${Number(item.rentPerDay).toLocaleString()}</td></tr>
+        <tr><td>Security Deposit</td><td>₹${Number(item.securityDeposit).toLocaleString()}</td></tr>
+        <tr><td>Total Quantity</td><td>${item.totalQuantity}</td></tr>
+        <tr><td>Available Quantity</td><td>${item.availableQuantity}</td></tr>
+        <tr><td>Rented Quantity</td><td>${item.rentedQuantity}</td></tr>
+        <tr><td>Status</td><td class="${isAvail?'status-available':'status-rented'}">${isAvail ? 'Available' : 'Rented Out'}</td></tr>
+      </table>
+
       <p class="detail-desc">${escapeHtml(item.description || "No description provided.")}</p>
 
-      <div class="price-box">
-        <div><div class="num">₹${Number(item.rentPerDay).toLocaleString()}</div><div class="lbl">Rent / Day</div></div>
-        <div><div class="num">₹${Number(item.securityDeposit).toLocaleString()}</div><div class="lbl">Security Deposit</div></div>
-      </div>
-
-      <div class="avail-box">
-        <div class="item"><b>${item.totalQuantity}</b>Total Qty</div>
-        <div class="item"><b>${item.availableQuantity}</b>Available Qty</div>
-        <div class="item"><b>${item.rentedQuantity}</b>Rented Qty</div>
-        <div class="item"><span class="badge ${isAvail?'available':'rented'}">${isAvail ? 'Available' : 'Rented Out'}</span></div>
-      </div>
-
-      ${featuresHtml ? `<div class="detail-section-title">Features</div><ul class="feature-list">${featuresHtml}</ul>` : ""}
-      ${specsHtml ? `<div class="detail-section-title">Specifications</div><table class="spec-table">${specsHtml}</table>` : ""}
+      ${featuresHtml ? `<h4>Features</h4><ul class="plain-list">${featuresHtml}</ul>` : ""}
+      ${specsHtml ? `<h4>Specifications</h4><table class="plain-table">${specsHtml}</table>` : ""}
 
       <div class="detail-actions">
-        <button class="btn btn-primary" ${isAvail ? "" : "disabled"} onclick="openRent('${item.id}')">Rent Now</button>
+        <button class="btn btn-blue" ${isAvail ? "" : "disabled"} onclick="openRent('${item.id}')">Rent Now</button>
         <button class="btn btn-outline" onclick="closeModal('detailOverlay')">Close</button>
       </div>
     </div>
@@ -409,7 +266,7 @@ function openRent(id){
   document.getElementById("r_qty").max = item.availableQuantity;
   document.getElementById("r_days").value = 1;
   updateRentTotal();
-  ["r_qty","r_days"].forEach(id=>document.getElementById(id).oninput = updateRentTotal);
+  ["r_qty","r_days"].forEach(fid=>document.getElementById(fid).oninput = updateRentTotal);
   openModal("rentOverlay");
 }
 function updateRentTotal(){
@@ -444,30 +301,31 @@ async function submitRent(evt){
 /* ---------------- Admin: table ---------------- */
 function renderAdminTable(){
   const body = document.getElementById("adminTableBody");
+  const q = (document.getElementById("adminSearch")?.value || "").trim().toLowerCase();
   body.innerHTML = "";
-  STATE.equipment.forEach(item=>{
-    const isAvail = item.availableQuantity > 0;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><img src="${item.imageURL || placeholderImage(item.category)}" onerror="this.src='${placeholderImage(item.category)}'"></td>
-      <td style="font-family:var(--font-mono);font-size:11.5px;">${item.id}</td>
-      <td>${escapeHtml(item.name)}</td>
-      <td>${item.category}</td>
-      <td>₹${item.rentPerDay}</td>
-      <td>${item.totalQuantity}</td>
-      <td>${item.availableQuantity}</td>
-      <td>${item.rentedQuantity}</td>
-      <td><span class="badge ${isAvail?'available':'rented'}">${isAvail?'Available':'Rented'}</span></td>
-      <td>
-        <div class="row-actions">
+  STATE.equipment
+    .filter(e => !q || [e.name,e.brand,e.model,e.id].join(" ").toLowerCase().includes(q))
+    .forEach(item=>{
+      const isAvail = item.availableQuantity > 0;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><img class="thumb" src="${item.imageURL || placeholderImage(item.category)}" onerror="this.src='${placeholderImage(item.category)}'"></td>
+        <td>${item.id}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.category)}</td>
+        <td>₹${item.rentPerDay}</td>
+        <td>${item.totalQuantity}</td>
+        <td>${item.availableQuantity}</td>
+        <td>${item.rentedQuantity}</td>
+        <td class="${isAvail?'status-available':'status-rented'}">${isAvail?'Available':'Rented'}</td>
+        <td>
           <button class="btn btn-outline btn-sm" onclick="openEquipmentForm('${item.id}')">Edit</button>
           <button class="btn btn-outline btn-sm" onclick="quickReturn('${item.id}')">Return Unit</button>
-          <button class="btn btn-danger btn-sm" onclick="handleDelete('${item.id}')">Delete</button>
-        </div>
-      </td>
-    `;
-    body.appendChild(tr);
-  });
+          <button class="btn btn-red btn-sm" onclick="handleDelete('${item.id}')">Delete</button>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
 }
 
 async function quickReturn(id){
@@ -549,7 +407,7 @@ async function handleFormSubmit(evt){
   };
 
   const btn = document.getElementById("formSubmitBtn");
-  btn.disabled = true; btn.textContent = "Saving…";
+  btn.disabled = true; btn.textContent = "Saving...";
   try{
     const res = id ? await apiCall("update", { id, ...payload }) : await apiCall("create", payload);
     if (!res.ok){ toast(res.error || "Save failed", "error"); return; }
@@ -564,6 +422,7 @@ async function handleFormSubmit(evt){
 async function refreshEquipment(){
   const res = await apiCall("list");
   STATE.equipment = res.data || [];
+  populateCategoryFilter();
   applyFilters();
   renderAdminTable();
 }
